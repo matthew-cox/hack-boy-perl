@@ -95,9 +95,9 @@ if ( !$NO_COLOR && grep( /^[-]+(nv|newvegas)/i, @ARGV ) ) { $PIP_COLOR = 3; };
 ### $PIP_COLOR
 our( @words ) = ();
 
-#if ( $DEBUG ) {
+if ( $DEBUG ) {
   push( @words, qw(fargo loves sells hopes dazed hears sizes spent deeds crazy since tires surge parts ) );
-#}
+}
 #
 # #############################################################################
 #
