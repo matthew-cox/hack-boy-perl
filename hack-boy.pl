@@ -98,6 +98,7 @@ our( @words ) = ();
 if ( $DEBUG ) {
   push( @words, qw(fargo loves sells hopes dazed hears sizes spent deeds crazy since tires surge parts ) );
 }
+
 #
 # #############################################################################
 #
@@ -128,7 +129,7 @@ sub _termColor($) {
 #
 # searchWords() - Given an entered word and number of matching chars: filter the list of words
 #
-sub searchWords{
+sub searchWords(){
   my( $the_word, $num_right, @the_words ) = @_;
   my( @word_parts ) = split( //, $the_word );
 
@@ -146,7 +147,7 @@ sub searchWords{
       $c++;
     }
     
-    if ( $alike >= $num_right ) {
+    if ( $alike == $num_right ) {
       push( @possible, $w );
     }
   }
@@ -293,7 +294,7 @@ while( 1 ) {
 while( scalar( @words ) > 1 ) {
   _printSep( 2 );
   print "$/Words remaining: " . scalar( @words ) . $/;
-  print "\t" . join( ', ', @words ) . "$/$/";
+  print "  " . join( ' ', @words ) . "$/$/";
   
   my( $the_word ) = "";
   while ( !grep( /^${the_word}$/, @words ) ) {
