@@ -325,10 +325,9 @@ _printSep(1);
 }
 else {
   # figlet -k -c -f slant -w 80 'Abort!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
-  _printSep(1);
+  _printSep(2);
   print <<EOF;
-\a${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                       ___     __                  __   __                    ${H_PAD}${H_CHAR}
+\a${H_CHAR}${H_PAD}                       ___     __                  __   __                    ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}                      /   |   / /_   ____   _____ / /_ / /                    ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}                     / /| |  / __ \\ / __ \\ / ___// __// /                     ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}                    / ___ | / /_/ // /_/ // /   / /_ /_/                      ${H_PAD}${H_CHAR}
