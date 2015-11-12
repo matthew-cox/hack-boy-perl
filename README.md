@@ -4,7 +4,7 @@ Interactive script to breack Fallout universe terminal passwords.
 
 Default usage:
 
-    ./hack-boy.pl -nv
+    ./hack-boy.pl
 ![alt tag](hackboy-green.png "Default Colors")
 
 ---
