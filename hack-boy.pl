@@ -129,9 +129,13 @@ sub _termColor($) {
 #
 # searchWords() - Given an entered word and number of matching chars: filter the list of words
 #
-sub searchWords(){
+sub searchWords($$@){
   my( $the_word, $num_right, @the_words ) = @_;
   my( @word_parts ) = split( //, $the_word );
+
+  if ( length( $the_word ) == $num_right ) {
+    return ( $the_word );
+  }
 
   my( @possible );
   foreach my $w ( @the_words ) {
