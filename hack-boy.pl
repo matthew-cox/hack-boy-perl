@@ -95,8 +95,17 @@ if ( !$NO_COLOR && grep( /^[-]+(nv|newvegas)/i, @ARGV ) ) { $PIP_COLOR = 3; };
 ### $PIP_COLOR
 our( @words ) = ();
 
-if ( $DEBUG ) {
+if ( $DEBUG == 1 ) {
   push( @words, qw(fargo loves sells hopes dazed hears sizes spent deeds crazy since tires surge parts ) );
+}
+elsif ( $DEBUG == 2 ) {
+  # erik,1
+  # trap,0
+  # RAIN
+  push( @words, qw(erik fork safe maul song loud last trap note shop rain this game road ) );
+}
+elsif ( $DEBUG >= 3 ) {
+  push( @words, qw(hire warm want hard part tent hall fate wait each seem fast kept walk ) );
 }
 
 #
@@ -306,7 +315,7 @@ while( scalar( @words ) > 1 ) {
   }
   my( $num_right ) = PromptString( "Chars:" );
   @words = searchWords( $the_word, $num_right, @words );
-  #### @remaining_words
+  #### @words
 }
 # #############################################################################
 #
