@@ -42,7 +42,7 @@ Nothing
 
 =head1 DESCRIPTION
 
-Interactive script to breack Fallout terminal passwords.
+Interactive script to break Fallout terminal passwords.
 
 =cut
 
@@ -77,6 +77,7 @@ grep( /^[-]+(h|help)/i, @ARGV ) && do{ exec "perldoc $0"; };
 # #############################################################################
 
 # #############################################################################
+#
 # CLI ARGS and IMPORTANT VARIABLES
 #
 our $DEBUG     = scalar( grep( /^d/, split( //, join( '', grep( /^[-]+d/i, @ARGV ) ) ) ) );
@@ -112,6 +113,7 @@ elsif ( $DEBUG >= 3 ) {
 # #############################################################################
 #
 # Sub-routines
+#
 # #############################################################################
 #
 # sub _termReset() - restore default color
@@ -227,6 +229,42 @@ sub PromptString( $;$ ) {
 #
 # #############################################################################
 #
+# sub PromptWithChoices() - prompt for a var and provide a list of choices
+#
+sub PromptWithChoices( $@ ) {
+  my( $prompt, @choices ) = @_;
+
+  if ( !scalar( @choices ) || ( $#choices == 0 && $choices[0] eq "" ) ) {
+    print STDERR "*** The are no choices. Exiting.$/";
+    exit;
+  }
+
+  my( $read ) = "";
+  while ( $read eq "" ) {
+
+    print "$prompt$/";
+
+    my( $i ) = 0;
+    foreach my $t ( @choices ) {
+      print sprintf( "%4d) %s$/", $i, "$t" );
+      $i++;
+    }
+
+    print "$/Choose (0-$#choices): ";
+    $read = _readLine();
+
+    if ( $read !~ /^\d+$/ || $read < 0 || $read > $#choices ) {
+      print "\a$/*** That is not a valid choice.$/";
+      $read = "";
+    }
+    else {
+      return $choices[$read];
+    }
+  } ## end while ( $read eq "" )
+} ## end sub PromptWithChoices( $@ )
+#
+# #############################################################################
+#
 # sub _printSep() - stupid little formatter to D.R.Y. the code
 #
 sub _printSep(;$){
@@ -247,17 +285,79 @@ EOF
 #
 # #############################################################################
 #
-# Procedural work here
+# sub processGuesses() - Read words for guessing against
 #
-#figlet -k -c -f slant -w 80 'Hack-Boy' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/ $/\${H_PAD}\${H_CHAR}/'
-system( "clear" );
+sub readWords(@) {
+  my( @words ) = @_;
 
-# trap INT and reset terminal
-$SIG{INT} = sub{ _termReset(); exit 0; };
+  my( $word ) = "";
+  print "$/Enter terminal words (hit return to stop)$/";
+  while( 1 ) {
+    $word = PromptString( "Word (" . (scalar( @words ) + 1) . ") :", "." );
+    if ( $word ne "." ) {
+    
+      $word = lc( $word );
+      if ( $word =~ /\W/ ) {
+        print "*** That word has non-word charaters in it!$/";
+        next;
+      }
+      elsif ( grep( /^${word}$/, @words ) ) {
+        print "*** That word already exists in the list!$/";
+        next;
+      }
+      elsif ( scalar( @words ) && ( length( "$word") != length( $words[0] ) ) ) {
+        my( $len1, $len2 ) = ( length( "$word"), length( $words[0] ) );
+        print "*** That word doesn't match the length of previous words ('$len1' != '$len2')!$/";
+        next;
+      }
+      else {
+        push( @words, $word)  
+      }
+    }
+    else {
+      last;
+    }
+  }
+  ### @words
+  return( @words );
+}
+#
+# #############################################################################
+#
+# sub processGuesses() - Handle the guessing portion
+#
+sub processGuesses( @ ) {
+  my( @words ) = @_;
+  while( scalar( @words ) > 1 ) {
+    _printSep( 2 );
+    print "$/Words remaining: " . scalar( @words ) . "$/$/";
+    #print "  " . join( ' ', @words ) . "$/$/";
+  
+    my( $the_word ) = "";
+    while ( !grep( /^${the_word}$/, @words ) ) {
+      $the_word = PromptWithChoices( "Available:", @words );
+    }
+    my( $num_right ) = PromptString( "$/ Selected Word : '$the_word'$/Correct Letters:" );
+    @words = searchWords( $the_word, $num_right, @words );
+    #### @words
+  }
+  return( @words );
+}
+#
+# #############################################################################
+#
+# sub main() - Procedural work here
+#
+sub main() {
+  #figlet -k -c -f slant -w 80 'Hack-Boy' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/ $/\${H_PAD}\${H_CHAR}/'
+  system( "clear" );
 
-_termColor( $PIP_COLOR );
-_printSep();
-print <<EOF;
+  # trap INT and reset terminal
+  $SIG{INT} = sub{ _termReset(); exit 0; };
+
+  _termColor( $PIP_COLOR );
+  _printSep();
+  print <<EOF;
 ${H_CHAR}${H_PAD}               __  __              __           ____                          ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}              / / / /____ _ _____ / /__        / __ ) ____   __  __           ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}             / /_/ // __ `// ___// //_/______ / __  |/ __ \\ / / / /           ${H_PAD}${H_CHAR}
@@ -265,67 +365,22 @@ ${H_CHAR}${H_PAD}            / __  // /_/ // /__ / ,<  /_____// /_/ // /_/ // /_
 ${H_CHAR}${H_PAD}           /_/ /_/ \\__,_/ \\___//_/|_|       /_____/ \\____/ \\__, /             ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}                                                          /____/              ${H_PAD}${H_CHAR}
 EOF
-_printSep( 2 );
-#
-# #############################################################################
-#
-# read the words for processing
-#
-my( $word ) = "";
-print "$/Enter terminal words (hit return to stop)$/";
-while( 1 ) {
-  $word = PromptString( "Word (" . (scalar( @words ) + 1) . ") :", "." );
-  if ( $word ne "." ) {
-    
-    $word = lc( $word );
-    if ( $word =~ /\W/ ) {
-      print "*** That word has non-word charaters in it!$/";
-      next;
-    }
-    elsif ( grep( /^${word}$/, @words ) ) {
-      print "*** That word already exists in the list!$/";
-      next;
-    }
-    elsif ( scalar( @words ) && ( length( "$word") != length( $words[0] ) ) ) {
-      my( $len1, $len2 ) = ( length( "$word"), length( $words[0] ) );
-      print "*** That word doesn't match the length of previous words ('$len1' != '$len2')!$/";
-      next;
-    }
-    else {
-      push( @words, $word)  
-    }
-  }
-  else {
-    last;
-  }
-}
-### @words
-# #############################################################################
-#
-# Here's the guess and matching portion
-#
-while( scalar( @words ) > 1 ) {
   _printSep( 2 );
-  print "$/Words remaining: " . scalar( @words ) . $/;
-  print "  " . join( ' ', @words ) . "$/$/";
-  
-  my( $the_word ) = "";
-  while ( !grep( /^${the_word}$/, @words ) ) {
-    $the_word = PromptString( "Word:" );
-  }
-  my( $num_right ) = PromptString( "Chars:" );
-  @words = searchWords( $the_word, $num_right, @words );
-  #### @words
-}
-# #############################################################################
-#
-# We broke out of the loop, only two possibilities
-#
-#figlet -k -c -f slant -w 80 'Match Found!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
-if ( scalar( @words ) == 1 ) {
-  my( $final_word ) = uc( $words[0] );
-  _printSep(1);
-  print <<EOF;
+
+  # read the words in
+  @words = readWords( @words );
+
+  # handle the guessing
+  @words = processGuesses( @words );
+
+  #
+  # We broke out of the loop, only two possibilities
+  #
+  #figlet -k -c -f slant -w 80 'Match Found!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
+  if ( scalar( @words ) == 1 ) {
+    my( $final_word ) = uc( $words[0] );
+    _printSep(1);
+    print <<EOF;
 ${H_CHAR}${H_PAD}     __  ___        __         __       ______                          __ __ ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}    /  |/  /____ _ / /_ _____ / /_     / ____/____   __  __ ____   ____/ // / ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}   / /|_/ // __ `// __// ___// __ \\   / /_   / __ \\ / / / // __ \\ / __  // /  ${H_PAD}${H_CHAR}
@@ -334,13 +389,13 @@ ${H_CHAR}${H_PAD} /_/  /_/ \\__,_/ \\__/ \\___//_/ /_/  /_/     \\____/ \\__,_//
 ${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD} The matching word is: $final_word
 EOF
-_printSep(1);
+  _printSep(1);
 
-}
-else {
-  # figlet -k -c -f slant -w 80 'Abort!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
-  _printSep(2);
-  print <<EOF;
+  }
+  else {
+    # figlet -k -c -f slant -w 80 'Abort!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
+    _printSep(2);
+    print <<EOF;
 \a${H_CHAR}${H_PAD}                       ___     __                  __   __                    ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}                      /   |   / /_   ____   _____ / /_ / /                    ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD}                     / /| |  / __ \\ / __ \\ / ___// __// /                     ${H_PAD}${H_CHAR}
@@ -349,7 +404,14 @@ ${H_CHAR}${H_PAD}                   /_/  |_|/_.___/ \\____//_/    \\__/(_)      
 ${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
 ${H_CHAR}${H_PAD} Something went wrong! No words found!                                        ${H_PAD}${H_CHAR}
 EOF
-  _printSep(1);
-}
+    _printSep(1);
+  }
 
-_termReset();
+  _termReset();
+}
+#
+# #############################################################################
+#
+# Do the thing
+#
+main();
