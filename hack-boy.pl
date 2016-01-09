@@ -4,7 +4,7 @@
 # DESCRIPTION
 =head1 NAME
 
-hack-boy.pl - Interactive script to breack Fallout terminal passwords.
+hack-boy.pl - Interactive script to guess Fallout terminal passwords.
 
 =head1 AUTHOR
 
@@ -42,7 +42,7 @@ Nothing
 
 =head1 DESCRIPTION
 
-Interactive script to break Fallout terminal passwords.
+Interactive script to guess Fallout terminal passwords.
 
 =cut
 
@@ -86,8 +86,10 @@ our $NO_COLOR  = grep( /^[-]+z/i, @ARGV );
 our $H_CHAR    = "#";
 # How wide to make the "ui"
 our $H_LEN     = $ENV{COLUMNS} || 100;
+# Minimum width
+our $H_MIN_WIDTH = 80;
 # much much padding to center?
-our $H_PAD = " " x (($H_LEN - 80) / 2);
+our $H_PAD = " " x (($H_LEN - $H_MIN_WIDTH) / 2);
 
 # Fallout 3/4: 2
 # Fallout New Vegas: 3
@@ -138,11 +140,64 @@ sub _termColor($) {
 #
 # #############################################################################
 #
+# _findWordSimilarity() - calculate the similairty of two words (chars in same position)
+#
+sub _findWordSimilarity($$){
+  my( $w1, $w2 ) = @_;
+  my( @w1 ) = split( //, $w1 );
+  my( @w2 ) = split( //, $w2 );
+
+  my( $alike, $c ) = (0,0);
+  while( $c <= $#w1 ) {
+    ( $w1[$c] eq $w2[$c] ) && $alike++;
+    $c++;
+  }
+  return $alike;
+}
+#
+# #############################################################################
+#
+# bestWordGuess() - given a list of words, suggest one that eliminates the most
+#
+sub findBestWorstGuess(@){
+  my( @the_words ) = @_;
+  my( %scores );
+  my( $max, $min ) = (0,scalar(@the_words));
+  foreach my $word ( @the_words ) {
+    my( $totalAlike ) = 0;
+
+    foreach my $w ( @the_words ) {
+      # skip the word itself
+      next unless ( "$word" ne "$w" );
+      if ( _findWordSimilarity( $word, $w ) ) {
+        $totalAlike++;
+      }
+    }
+
+    if ( !exists($scores{$totalAlike} ) ) {
+      $scores{$totalAlike} = [];
+    }
+
+    push( @{$scores{$totalAlike}}, $word );
+
+    if ( $totalAlike > $max ) {
+      $max = $totalAlike;
+    }
+
+    if ( $totalAlike < $min ) {
+      $min = $totalAlike;
+    }
+  }
+  ### %scores
+  return ($scores{$max}[rand @{$scores{$max}}], $scores{$min}[rand @{$scores{$min}}]);
+}
+#
+# #############################################################################
+#
 # searchWords() - Given an entered word and number of matching chars: filter the list of words
 #
 sub searchWords($$@){
   my( $the_word, $num_right, @the_words ) = @_;
-  my( @word_parts ) = split( //, $the_word );
 
   if ( length( $the_word ) == $num_right ) {
     return ( $the_word );
@@ -151,18 +206,9 @@ sub searchWords($$@){
   my( @possible );
   foreach my $w ( @the_words ) {
     # skip the word itself
-    if ( "$the_word" eq "$w" ) {
-      next;
-    }
-    my( $alike, $c ) = (0,0);
-    my( @parts ) = split( //, $w );
+    next unless ( "$the_word" ne "$w" );
 
-    while( $c <= $#word_parts ) {
-      ( $word_parts[$c] eq $parts[$c] ) && $alike++;
-      $c++;
-    }
-    
-    if ( $alike == $num_right ) {
+    if ( _findWordSimilarity( $the_word, $w ) == $num_right ) {
       push( @possible, $w );
     }
   }
@@ -244,21 +290,20 @@ sub PromptWithChoices( $@ ) {
 
     print "$prompt$/";
 
-    my( $i ) = 0;
+    my( $i ) = 1;
     foreach my $t ( @choices ) {
-      print sprintf( "%4d) %s$/", $i, "$t" );
-      $i++;
+      print sprintf( "%4d) %s$/", $i++, "$t" );
     }
 
-    print "$/Choose (0-$#choices): ";
+    print "$/Choose (1-" . scalar(@choices) . "): ";
     $read = _readLine();
 
-    if ( $read !~ /^\d+$/ || $read < 0 || $read > $#choices ) {
+    if ( $read !~ /^\d+$/ || $read < 1 || $read > scalar(@choices) ) {
       print "\a$/*** That is not a valid choice.$/";
       $read = "";
     }
     else {
-      return $choices[$read];
+      return $choices[--$read];
     }
   } ## end while ( $read eq "" )
 } ## end sub PromptWithChoices( $@ )
@@ -271,16 +316,13 @@ sub _printSep(;$){
   my( $print_lead ) = @_;
   $print_lead = $print_lead || 0;
 
-  $print_lead && print <<EOF;
-${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
-EOF
-  
+  $print_lead &&
+    print "${H_CHAR}${H_PAD}" . " " x ($H_MIN_WIDTH-2) . "${H_PAD}${H_CHAR}$/";
+
   print "${H_CHAR}" x $H_LEN . "$/";
   
-  if ( $print_lead > 1 ) { print <<EOF;
-${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
-EOF
-  }
+  ( $print_lead > 1 ) &&
+    print "${H_CHAR}${H_PAD}" . " " x ($H_MIN_WIDTH-2) . "${H_PAD}${H_CHAR}$/";
 }
 #
 # #############################################################################
@@ -293,12 +335,12 @@ sub readWords(@) {
   my( $word ) = "";
   print "$/Enter terminal words (hit return to stop)$/";
   while( 1 ) {
-    $word = PromptString( "Word (" . (scalar( @words ) + 1) . ") :", "." );
+    $word = PromptString( sprintf( "Word (%02d) :", (scalar(@words)+1) ), "." );
     if ( $word ne "." ) {
     
       $word = lc( $word );
       if ( $word =~ /\W/ ) {
-        print "*** That word has non-word charaters in it!$/";
+        print "*** That word has non-word characters in it!$/";
         next;
       }
       elsif ( grep( /^${word}$/, @words ) ) {
@@ -328,9 +370,21 @@ sub readWords(@) {
 #
 sub processGuesses( @ ) {
   my( @words ) = @_;
+
   while( scalar( @words ) > 1 ) {
+    my( $best, $worst ) = findBestWorstGuess( @words );
+    #### $best
+    #### $worst
+    my( $bestIndex  ) = grep { $words[$_] eq $best } 0..$#words;
+    my( $worstIndex ) = grep { $words[$_] eq $worst } 0..$#words;
+
     _printSep( 2 );
-    print "$/Words remaining: " . scalar( @words ) . "$/$/";
+    print "$/";
+    print sprintf("%20s: %s$/", "Words remaining", scalar( @words ) );
+    print sprintf("%20s: '%s' (choice %2s)$/", "Most similar words", $best, ++$bestIndex );
+    ( $best ne $worst ) &&
+      print sprintf("%20s: '%s' (choice %2s)$/", "Least similar words", $worst, ++$worstIndex );
+    print "$/";
     #print "  " . join( ' ', @words ) . "$/$/";
   
     my( $the_word ) = "";
