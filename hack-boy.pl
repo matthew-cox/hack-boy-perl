@@ -96,8 +96,58 @@ our $H_PAD = " " x (($H_LEN - $H_MIN_WIDTH) / 2);
 our $PIP_COLOR = 2;
 if ( !$NO_COLOR && grep( /^[-]+(nv|newvegas)/i, @ARGV ) ) { $PIP_COLOR = 3; };
 ### $PIP_COLOR
+#
+# this is global *only* for debug mode
+#
 our( @words ) = ();
+#
+# #############################################################################
+#
+# ACSII Art Messages
+#
+# figlet -k -c -f slant -w 80 'Hack-Boy' | sed -e 's/\\/\\\\/g'
+our $HACK_BOY = <<EOF;
+               __  __              __           ____                          
+              / / / /____ _ _____ / /__        / __ ) ____   __  __           
+             / /_/ // __ `// ___// //_/______ / __  |/ __ \\ / / / /           
+            / __  // /_/ // /__ / ,<  /_____// /_/ // /_/ // /_/ /            
+           /_/ /_/ \\__,_/ \\___//_/|_|       /_____/ \\____/ \\__, /             
+                                                          /____/              
+EOF
 
+$HACK_BOY =~ s|^|${H_CHAR}${H_PAD}|mg;
+$HACK_BOY =~ s|$/|${H_PAD}${H_CHAR}$/|mg;
+
+# figlet -k -c -f slant -w 80 'Match Found!' | sed -e 's/\\/\\\\/g' -e 's/^/ /g'
+our $MATCH_FOUND = <<EOF;
+     __  ___        __         __       ______                          __ __ 
+    /  |/  /____ _ / /_ _____ / /_     / ____/____   __  __ ____   ____/ // / 
+   / /|_/ // __ `// __// ___// __ \\   / /_   / __ \\ / / / // __ \\ / __  // /  
+  / /  / // /_/ // /_ / /__ / / / /  / __/  / /_/ // /_/ // / / // /_/ //_/   
+ /_/  /_/ \\__,_/ \\__/ \\___//_/ /_/  /_/     \\____/ \\__,_//_/ /_/ \\__,_/(_)    
+                                                                              
+EOF
+
+$MATCH_FOUND =~ s|^|${H_CHAR}${H_PAD}|mg;
+$MATCH_FOUND =~ s|$/|${H_PAD}${H_CHAR}$/|mg;
+
+# figlet -k -c -f slant -w 80 'Abort!' | sed -e 's/\\/\\\\/g'
+our $ABORT = <<EOF;
+                       ___     __                  __   __                    
+                      /   |   / /_   ____   _____ / /_ / /                    
+                     / /| |  / __ \\ / __ \\ / ___// __// /                     
+                    / ___ | / /_/ // /_/ // /   / /_ /_/                      
+                   /_/  |_|/_.___/ \\____//_/    \\__/(_)                       
+                                                                              
+EOF
+
+$ABORT =~ s|^|${H_CHAR}${H_PAD}|mg;
+$ABORT =~ s|$/|${H_PAD}${H_CHAR}$/|mg;
+#
+# #############################################################################
+#
+# Debug mode
+#
 if ( $DEBUG == 1 ) {
   push( @words, qw(fargo loves sells hopes dazed hears sizes spent deeds crazy since tires surge parts ) );
 }
@@ -325,9 +375,24 @@ sub _printSep(;$){
     print "${H_CHAR}${H_PAD}" . " " x ($H_MIN_WIDTH-2) . "${H_PAD}${H_CHAR}$/";
 }
 #
+# sub _printText() - stupid little formatter to D.R.Y. the code
+#
+sub _printText($){
+  my( $mesg ) = @_;
+  my $PAD = " " x (($H_LEN - length($mesg) - 2) / 2);
+  # if the string is even length, all is well. odd: off by one
+  if ( length($mesg) % 2 == 0 ) {
+    print "${H_CHAR}${PAD}${mesg}${PAD}${H_CHAR}$/";
+  }
+  else {
+    print "${H_CHAR}${PAD}${mesg} ${PAD}${H_CHAR}$/";
+  }
+}
+
+#
 # #############################################################################
 #
-# sub processGuesses() - Read words for guessing against
+# sub readWords() - Read words for guessing against
 #
 sub readWords(@) {
   my( @words ) = @_;
@@ -385,8 +450,7 @@ sub processGuesses( @ ) {
     ( $best ne $worst ) &&
       print sprintf("%20s: '%s' (choice %2s)$/", "Least similar words", $worst, ++$worstIndex );
     print "$/";
-    #print "  " . join( ' ', @words ) . "$/$/";
-  
+
     my( $the_word ) = "";
     while ( !grep( /^${the_word}$/, @words ) ) {
       $the_word = PromptWithChoices( "Available:", @words );
@@ -403,7 +467,6 @@ sub processGuesses( @ ) {
 # sub main() - Procedural work here
 #
 sub main() {
-  #figlet -k -c -f slant -w 80 'Hack-Boy' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/ $/\${H_PAD}\${H_CHAR}/'
   system( "clear" );
 
   # trap INT and reset terminal
@@ -411,14 +474,7 @@ sub main() {
 
   _termColor( $PIP_COLOR );
   _printSep();
-  print <<EOF;
-${H_CHAR}${H_PAD}               __  __              __           ____                          ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}              / / / /____ _ _____ / /__        / __ ) ____   __  __           ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}             / /_/ // __ `// ___// //_/______ / __  |/ __ \\ / / / /           ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}            / __  // /_/ // /__ / ,<  /_____// /_/ // /_/ // /_/ /            ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}           /_/ /_/ \\__,_/ \\___//_/|_|       /_____/ \\____/ \\__, /             ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                                                          /____/              ${H_PAD}${H_CHAR}
-EOF
+  print $HACK_BOY;
   _printSep( 2 );
 
   # read the words in
@@ -430,34 +486,17 @@ EOF
   #
   # We broke out of the loop, only two possibilities
   #
-  #figlet -k -c -f slant -w 80 'Match Found!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
   if ( scalar( @words ) == 1 ) {
     my( $final_word ) = uc( $words[0] );
     _printSep(1);
-    print <<EOF;
-${H_CHAR}${H_PAD}     __  ___        __         __       ______                          __ __ ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}    /  |/  /____ _ / /_ _____ / /_     / ____/____   __  __ ____   ____/ // / ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}   / /|_/ // __ `// __// ___// __ \\   / /_   / __ \\ / / / // __ \\ / __  // /  ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}  / /  / // /_/ // /_ / /__ / / / /  / __/  / /_/ // /_/ // / / // /_/ //_/   ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD} /_/  /_/ \\__,_/ \\__/ \\___//_/ /_/  /_/     \\____/ \\__,_//_/ /_/ \\__,_/(_)    ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD} The matching word is: $final_word
-EOF
-  _printSep(1);
-
+    print $MATCH_FOUND;
+    _printText( "The matching word is: $final_word" );
+    _printSep(1);
   }
   else {
-    # figlet -k -c -f slant -w 80 'Abort!' | sed -e 's/^ /\${H_CHAR}\${H_PAD}/' -e 's/\\/\\\\/g' -e 's/$/\${H_PAD}\${H_CHAR}/'
     _printSep(2);
-    print <<EOF;
-\a${H_CHAR}${H_PAD}                       ___     __                  __   __                    ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                      /   |   / /_   ____   _____ / /_ / /                    ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                     / /| |  / __ \\ / __ \\ / ___// __// /                     ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                    / ___ | / /_/ // /_/ // /   / /_ /_/                      ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                   /_/  |_|/_.___/ \\____//_/    \\__/(_)                       ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD}                                                                              ${H_PAD}${H_CHAR}
-${H_CHAR}${H_PAD} Something went wrong! No words found!                                        ${H_PAD}${H_CHAR}
-EOF
+    print "\a$ABORT";
+    _printText( "Something went wrong! No words found!" );
     _printSep(1);
   }
 
