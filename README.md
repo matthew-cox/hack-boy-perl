@@ -1,6 +1,6 @@
 # hack-boy-perl
 
-Interactive script to breack Fallout universe terminal passwords.
+Interactive script to guess Fallout universe terminal passwords.
 
 Default usage:
 
