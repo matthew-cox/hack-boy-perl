@@ -405,16 +405,16 @@ sub readWords(@) {
     
       $word = lc( $word );
       if ( $word =~ /\W/ ) {
-        print "*** That word has non-word characters in it!$/";
+        print "\a*** That word has non-word characters in it!$/";
         next;
       }
       elsif ( grep( /^${word}$/, @words ) ) {
-        print "*** That word already exists in the list!$/";
+        print "\a*** That word already exists in the list!$/";
         next;
       }
       elsif ( scalar( @words ) && ( length( "$word") != length( $words[0] ) ) ) {
         my( $len1, $len2 ) = ( length( "$word"), length( $words[0] ) );
-        print "*** That word doesn't match the length of previous words ('$len1' != '$len2')!$/";
+        print "\a*** That word doesn't match the length of previous words ('$len1' != '$len2')!$/";
         next;
       }
       else {
